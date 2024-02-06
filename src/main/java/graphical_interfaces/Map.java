@@ -14,6 +14,7 @@ public class Map extends JPanel {
     private static final int EMPTY_DOT = 0;
     private static final int PADDING = 10;
 
+    private int gameStateType;
     private static final int STATE_GAME = 0;
     private static final int STATE_WIN_HUMAN = 1;
     private static final int STATE_WIN_AI = 2;
@@ -23,13 +24,12 @@ public class Map extends JPanel {
     private static final String MSG_WIN_AI = "Победил компьютер!";
     private static final String MSG_DRAW = "Ничья!";
 
-    private int gameStateType;
     private int width, height, cellWidth, cellHeight;
     private int mode, fieldSizeX, fieldSizeY, winLen;
     private int[][] field;
     private boolean gameWork;
 
-    public Map() {
+    Map() {
         setBackground(Color.WHITE);
         addMouseListener(new MouseAdapter() {
             @Override
@@ -45,7 +45,7 @@ public class Map extends JPanel {
         field = new int[fieldSizeY][fieldSizeX];
     }
 
-    public void startNewGame(int mode, int sizeX, int sizeY, int winLen) {
+    void startNewGame(int mode, int sizeX, int sizeY, int winLen) {
         this.mode = mode;
         this.fieldSizeX = sizeX;
         this.fieldSizeY = sizeY;
@@ -73,7 +73,7 @@ public class Map extends JPanel {
         checkEndGame(AI_DOT, STATE_WIN_AI);
     }
 
-    private void testBoard() {
+    private void testBoard(){
         for (int i = 0; i < 3; i++) {
             System.out.println(Arrays.toString(field[i]));
         }
@@ -121,7 +121,7 @@ public class Map extends JPanel {
         return false;
     }
 
-    private boolean checkWin(int dot) {
+    private boolean checkWin(int dot){
         for (int i = 0; i < fieldSizeX; i++) {
             for (int j = 0; j < fieldSizeY; j++) {
                 if (checkLine(i, j, 1, 0, winLen, dot)) return true;
@@ -133,14 +133,14 @@ public class Map extends JPanel {
         return false;
     }
 
-    private boolean checkLine(int x, int y, int vx, int vy, int len, int dot) {
+    private boolean checkLine(int x, int y, int vx, int vy, int len, int dot){
         int far_x = x + (len - 1) * vx;
         int far_y = y + (len - 1) * vy;
-        if (!isValidCell(far_x, far_y)) {
+        if (!isValidCell(far_x, far_y)){
             return false;
         }
         for (int i = 0; i < len; i++) {
-            if (field[y + i * vy][x + i * vx] != dot) {
+            if (field[y + i * vy][x + i * vx] != dot){
                 return false;
             }
         }
@@ -173,33 +173,26 @@ public class Map extends JPanel {
 
         for (int y = 0; y < fieldSizeY; y++) {
             for (int x = 0; x < fieldSizeX; x++) {
-                if (field[y][x] == EMPTY_DOT) {
+                if (field[y][x] == EMPTY_DOT){
                     continue;
                 }
                 if (field[y][x] == HUMAN_DOT) {
-                    drawCross(g, x, y);
+                    g.drawLine(x * cellWidth + PADDING, y * cellHeight + PADDING,
+                            (x + 1) * cellWidth - PADDING, (y + 1) * cellHeight - PADDING);
+                    g.drawLine(x * cellWidth + PADDING, (y + 1) * cellHeight - PADDING,
+                            (x + 1) * cellWidth - PADDING, y * cellHeight + PADDING);
                 } else if (field[y][x] == AI_DOT) {
-                    drawCircle(g, x, y);
+                    g.drawOval(x * cellWidth + PADDING, y * cellHeight + PADDING,
+                            cellWidth - PADDING * 2, cellHeight - PADDING * 2);
                 } else {
-                    throw new RuntimeException("unchecked value " + field[y][x] + " in cell: x=" + x + " y=" + y);
+                    throw new RuntimeException("unchecked value " + field[y][x] +
+                            " in cell: x=" + x + " y=" + y);
                 }
             }
         }
-        if (gameStateType != STATE_GAME) {
+        if (gameStateType != STATE_GAME){
             showMessage(g);
         }
-    }
-
-    private void drawCircle(Graphics g, int x, int y) {
-        g.drawLine(x * cellWidth + PADDING, y * cellHeight + PADDING,
-                cellWidth - PADDING * 2, cellHeight - PADDING * 2);
-    }
-
-    private void drawCross(Graphics g, int x, int y) {
-        g.drawLine(x * cellWidth + PADDING, y * cellHeight + PADDING,
-                (x + 1) * cellWidth - PADDING, (y + 1) * cellHeight - PADDING);
-        g.drawLine(x * cellWidth + PADDING, (y + 1) * cellHeight - PADDING,
-                (x + 1) * cellWidth - PADDING, y * cellHeight + PADDING);
     }
 
     private void showMessage(Graphics g) {
@@ -207,7 +200,7 @@ public class Map extends JPanel {
         g.fillRect(0, getHeight() / 2, getWidth(), 70);
         g.setColor(Color.YELLOW);
         g.setFont(new Font("Times new roman", Font.BOLD, 48));
-        switch (gameStateType) {
+        switch (gameStateType){
             case STATE_DRAW -> g.drawString(MSG_DRAW, 180, getHeight() / 2 + 60);
             case STATE_WIN_HUMAN -> g.drawString(MSG_WIN_HUMAN, 20, getHeight() / 2 + 60);
             case STATE_WIN_AI -> g.drawString(MSG_WIN_AI, 70, getHeight() / 2 + 60);
