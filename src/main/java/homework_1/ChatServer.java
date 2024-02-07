@@ -4,95 +4,126 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.*;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ChatServer extends JFrame {
-    private static final int WINDOW_HEIGHT = 360;
-    private static final int WINDOW_WIDTH = 540;
-    private static final int WINDOW_POSX = 500;
-    private static final int WINDOW_POSY = 400;
-    private boolean isServerStart;
-    private JButton btnStart = new JButton("Start");
-    private JButton btnStop = new JButton("Stop");
-    private JPanel btnPanel = new JPanel(new GridLayout(1,2));
-    private JTextArea textArea = new JTextArea();
+    public static final int WIDTH = 400;
+    public static final int HEIGHT = 300;
+    public static final String LOG_PATH = "src/main/java/homework_1/log.txt";
+    List<ChatClient> chatClientList;
+    JButton btnStart, btnStop;
+    JTextArea log;
+    boolean work;
+
     public ChatServer(){
-        isServerStart = false;
+        chatClientList = new ArrayList<>();
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLocation(WINDOW_POSX,WINDOW_POSY);
-        setSize(WINDOW_WIDTH,WINDOW_HEIGHT);
-        setTitle("Chat Server");
-        setVisible(true);
+        setSize(WIDTH, HEIGHT);
         setResizable(false);
-        textArea.setEditable(false);
+        setTitle("Chat server");
+        setLocationRelativeTo(null);
+        createPanel();
+        setVisible(true);
+    }
+
+    public boolean connectUser(ChatClient chatClient){
+        if (!work){
+            return false;
+        }
+        chatClientList.add(chatClient);
+        return true;
+    }
+
+    public String getLog() {
+        return readLog();
+    }
+
+    public void disconnectUser(ChatClient chatClient){
+        chatClientList.remove(chatClient);
+        if (chatClient != null){
+            chatClient.disconnectFromServer();
+        }
+    }
+
+    public void message(String text){
+        if (!work){
+            return;
+        }
+        text += "";
+        log.append(text + "\n");
+        answerAll(text);
+        saveInLog(text);
+    }
+
+    private void answerAll(String text){
+        for (ChatClient chatClient : chatClientList){
+            chatClient.answer(text);
+        }
+    }
+
+    private void saveInLog(String text){
+        try (FileWriter writer = new FileWriter(LOG_PATH, true)){
+            writer.write(text + "\n");
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private String readLog(){
+        StringBuilder stringBuilder = new StringBuilder();
+        try (FileReader reader = new FileReader(LOG_PATH)){
+            int c;
+            while ((c = reader.read()) != -1){
+                stringBuilder.append((char) c);
+            }
+            stringBuilder.delete(stringBuilder.length()-1, stringBuilder.length());
+            return stringBuilder.toString();
+        } catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void createPanel() {
+        log = new JTextArea();
+        add(log);
+        add(createButtons(), BorderLayout.SOUTH);
+    }
+
+    private Component createButtons() {
+        JPanel panel = new JPanel(new GridLayout(1, 2));
+        btnStart = new JButton("Start");
+        btnStop = new JButton("Stop");
         btnStart.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                if(!isServerStart){
-                    isServerStart = true;
-                    textArea.append("Сервер запущен!\n");
-                    for(String str: downloadFromLog()){
-                        textArea.append(str +"\n");
-                    }
-                } else{
-                    textArea.append("Сервер уже запущен!\n");
+            public void actionPerformed(ActionEvent e) {
+                if (work){
+                    log.append("Сервер уже был запущен!\n");
+                } else {
+                    work = true;
+                    log.append("Сервер запущен!\n");
                 }
             }
         });
         btnStop.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                if(isServerStart) {
-                    isServerStart = false;
-                    textArea.append("Сервер остановлен!\n");
+            public void actionPerformed(ActionEvent e) {
+                if (!work){
+                    log.append("Сервер уже был остановлен!\n");
                 } else {
-                    textArea.append("Сервер уже остановлен!\n");
+                    work = false;
+                    while (!chatClientList.isEmpty()){
+                        disconnectUser(chatClientList.get(chatClientList.size()-1));
+                    }
+                    log.append("Сервер остановлен!\n");
                 }
             }
         });
-
-        btnPanel.add(btnStart);
-        btnPanel.add(btnStop);
-
-        this.add(textArea,BorderLayout.NORTH);
-        this.add(btnPanel, BorderLayout.SOUTH);
-    }
-    public boolean auth(String login, String password){
-        if(isServerStart){
-            textArea.append("Успешная аторизация!" + login + "\n");
-            return true;
-        }
-        return false;
-    }
-
-    public void saveInLog(String name, String message){
-        String sms = name + ": " + message + "\n";
-        try(FileWriter fileWriter = new FileWriter("src/main/java/homework_1/log.txt", true)){
-            fileWriter.write(sms);
-            textArea.append(sms);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    public List<String> downloadFromLog(){
-        List<String> log = new ArrayList<>();
-        try(BufferedReader reader = new BufferedReader(new FileReader("src/main/java/homework_1/log.txt"))){
-            String line = reader.readLine();
-            while (line != null){
-                log.add(line);
-                line = reader.readLine();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return log;
-    }
-
-    public String getTextArea(){
-        return textArea.getText();
+        panel.add(btnStart);
+        panel.add(btnStop);
+        return panel;
     }
 }

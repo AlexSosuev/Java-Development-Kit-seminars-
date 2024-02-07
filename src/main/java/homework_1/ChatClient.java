@@ -1,94 +1,138 @@
 package homework_1;
 
 import javax.swing.*;
-
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.awt.event.*;
 
 public class ChatClient extends JFrame {
-    private static final int WINDOW_HEIGHT = 360;
-    private static final int WINDOW_WIDTH = 540;
-    private static final int WINDOW_POSX = 200;
-    private static final int WINDOW_POSY = 200;
-    private JTextField ipUser = new JTextField("127.0.0.1");
-    private JTextField port = new JTextField("8080");
-    private JTextField login = new JTextField();
-    private JTextField password = new JTextField("********");
-    private JButton btnLogin = new JButton("login");
-    private JPanel panConnected = new JPanel(new GridLayout(2,3));
-    private JTextField text = new JTextField();
-    private JTextArea messages = new JTextArea();
-    private JTextField writeMessage = new JTextField();
-    private JButton sendMessage = new JButton("Send");
-    private JPanel panMessage = new JPanel(new GridLayout(1,2));
+    public static final int WIDTH = 400;
+    public static final int HEIGHT = 300;
+    private final ChatServer chatServer;
+    private boolean connected;
+    private String name;
+    JTextArea log;
+    JTextField ipUser, port, login, message;
+    JPasswordField password;
+    JButton btnLogin, btnSend;
+    JPanel headerPanel;
 
-    public ChatClient(ChatServer server){
-        setLocation(WINDOW_POSX,WINDOW_POSY);
-        setSize(WINDOW_WIDTH,WINDOW_HEIGHT);
-        setTitle("Chat Client");
-        setVisible(true);
+    public ChatClient(ChatServer chatServer){
+        this.chatServer = chatServer;
+        setSize(WIDTH, HEIGHT);
         setResizable(false);
+        setTitle("Chat client");
+        setLocation(chatServer.getX() - 500, chatServer.getY());
+        createPanel();
+        setVisible(true);
+    }
 
+    public void answer(String text){
+        appendLog(text);
+    }
 
-        panConnected.add(ipUser);
-        panConnected.add(port);
-        panConnected.add(text).setVisible(false);
-        panConnected.add(login);
-        panConnected.add(password);
-        panConnected.add(btnLogin);
+    private void connectToServer() {
+        if (chatServer.connectUser(this)){
+            appendLog("Вы успешно подключились!\n");
+            headerPanel.setVisible(false);
+            connected = true;
+            name = login.getText();
+            String log = chatServer.getLog();
+            if (log != null){
+                appendLog(log);
+            }
+        } else {
+            appendLog("Подключение не удалось");
+        }
+    }
 
-        panMessage.add(writeMessage);
-        panMessage.add(sendMessage);
-        panMessage.setVisible(false);
-        messages.setEditable(false);
-        messages.setVisible(false);
-        this.add(panConnected, BorderLayout.NORTH);
-        this.add(messages, BorderLayout.CENTER);
-        this.add(panMessage,BorderLayout.SOUTH);
+    public void disconnectFromServer() {
+        if (connected) {
+            headerPanel.setVisible(true);
+            connected = false;
+            chatServer.disconnectUser(this);
+            appendLog("Вы были отключены от сервера!");
+        }
+    }
 
-        JScrollPane jScrollPane = new JScrollPane(messages);
-        jScrollPane.setVisible(false);
-        this.add(jScrollPane);
+    public void message(){
+        if (connected){
+            String text = message.getText();
+            if (!text.equals("")){
+                chatServer.message(name + ": " + text);
+                message.setText("");
+            }
+        } else {
+            appendLog("Нет подключения к серверу");
+        }
+    }
 
+    private void appendLog(String text){
+        log.append(text + "\n");
+    }
+
+    private void createPanel() {
+        add(createConnectPanel(), BorderLayout.NORTH);
+        add(createLog());
+        add(createFooter(), BorderLayout.SOUTH);
+    }
+
+    private Component createConnectPanel(){
+        headerPanel = new JPanel(new GridLayout(2, 3));
+        ipUser = new JTextField("127.0.0.1");
+        port = new JTextField("8080");
+        login = new JTextField("Petya");
+        password = new JPasswordField("123456");
+        btnLogin = new JButton("login");
         btnLogin.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                if(server.auth(login.getText(),password.getText())){
-                    panConnected.setVisible(false);
-                    messages.setVisible(true);
-                    panMessage.setVisible(true);
-                    jScrollPane.setVisible(true);
-                    List<String> temp = server.downloadFromLog();
-                    for(int i = 0; i < temp.size(); i++){
-                        messages.append(temp.get(i) + "\n");
-                    }
+            public void actionPerformed(ActionEvent e) {
+                connectToServer();
+            }
+        });
+
+        headerPanel.add(ipUser);
+        headerPanel.add(port);
+        headerPanel.add(new JPanel());
+        headerPanel.add(login);
+        headerPanel.add(password);
+        headerPanel.add(btnLogin);
+        return headerPanel;
+    }
+
+    private Component createLog(){
+        log = new JTextArea();
+        log.setEditable(false);
+        return new JScrollPane(log);
+    }
+
+    private Component createFooter() {
+        JPanel panel = new JPanel(new BorderLayout());
+        message = new JTextField();
+        message.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == '\n'){
+                    message();
                 }
             }
         });
-        sendMessage.addActionListener(new ActionListener() {
+        btnSend = new JButton("send");
+        btnSend.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                server.saveInLog(login.getText(), writeMessage.getText());
-                messages.append(login.getText() + ": " + writeMessage.getText() + "\n");
-                writeMessage.setText("");
+            public void actionPerformed(ActionEvent e) {
+                message();
             }
         });
-        update(server);
+        panel.add(message);
+        panel.add(btnSend, BorderLayout.EAST);
+        return panel;
     }
 
-    public void update(ChatServer server){
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleWithFixedDelay(()-> {
-            List<String> messageLog = List.of(this.messages.getText().split("\n"));
-            List<String> log = server.downloadFromLog();
-            if(!messageLog.get(messageLog.size()-1).equals(log.get(log.size()-1)) && !messageLog.isEmpty()){
-                this.messages.append(log.get(log.size()-1) + "\n");
-            }
-        }, 0,100, TimeUnit.MILLISECONDS);
+    @Override
+    protected void processWindowEvent(WindowEvent e) {
+        if (e.getID() == WindowEvent.WINDOW_CLOSING){
+            disconnectFromServer();
+        }
+        super.processWindowEvent(e);
     }
 }
