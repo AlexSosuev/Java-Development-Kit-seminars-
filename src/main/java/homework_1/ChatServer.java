@@ -4,8 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,9 +58,7 @@ public class ChatServer extends JFrame {
     }
 
     private void answerAll(String text){
-        for (ChatClient chatClient : chatClientList){
-            chatClient.answer(text);
-        }
+        chatClientList.forEach(chatClient -> chatClient.answer(text));
     }
 
     private void saveInLog(String text){
@@ -71,20 +68,20 @@ public class ChatServer extends JFrame {
             e.printStackTrace();
         }
     }
-
-    private String readLog(){
+    private String readLog() {
         StringBuilder stringBuilder = new StringBuilder();
-        try (FileReader reader = new FileReader(LOG_PATH)){
-            int c;
-            while ((c = reader.read()) != -1){
-                stringBuilder.append((char) c);
+        File logFile = new File(LOG_PATH);
+        if (logFile.exists() && logFile.length() > 0) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(logFile))){
+                reader.lines().forEach(line -> stringBuilder.append(line).append("\n"));
+                if (stringBuilder.length() > 0) {
+                    stringBuilder.setLength(stringBuilder.length() - 1);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            stringBuilder.delete(stringBuilder.length()-1, stringBuilder.length());
-            return stringBuilder.toString();
-        } catch (Exception e){
-            e.printStackTrace();
-            return null;
         }
+        return stringBuilder.toString();
     }
 
     private void createPanel() {

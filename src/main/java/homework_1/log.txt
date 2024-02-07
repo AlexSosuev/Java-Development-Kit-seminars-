@@ -1,4 +1,3 @@
-Petya: Привет всем.
-Vasya: Добрый день!
+
 Vasya: Hi
-Petya: Bay)))
+Petya: And you Hi)))
