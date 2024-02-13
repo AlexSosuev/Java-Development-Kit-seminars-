@@ -1,4 +1,6 @@
-package homework_1;
+package homework.server;
+
+import homework.client.ChatClient;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,7 +13,7 @@ import java.util.List;
 public class ChatServer extends JFrame {
     public static final int WIDTH = 400;
     public static final int HEIGHT = 300;
-    public static final String LOG_PATH = "src/main/java/homework_1/log.txt";
+    public static final String LOG_PATH = "src/main/java/homework/server/log.txt";
     List<ChatClient> chatClientList;
     JButton btnStart, btnStop;
     JTextArea log;

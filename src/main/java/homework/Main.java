@@ -1,4 +1,7 @@
-package homework_1;
+package homework;
+
+import homework.client.ChatClient;
+import homework.server.ChatServer;
 
 public class Main {
     public static void main(String[] args) {

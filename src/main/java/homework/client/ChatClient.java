@@ -1,4 +1,6 @@
-package homework_1;
+package homework.client;
+
+import homework.server.ChatServer;
 
 import javax.swing.*;
 import java.awt.*;
