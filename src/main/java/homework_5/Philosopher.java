@@ -1,33 +1,52 @@
 package homework_5;
 
-public class Philosopher implements Runnable {
-    private final Object leftFork;
-    private final Object rightFork;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 
-    public Philosopher(Object leftFork, Object rightFork) {
+public class Philosopher extends Thread {
+    private final String name;
+    private final int leftFork;
+    private final int rightFork;
+    private int countEat;
+    private final Random random;
+    private final CountDownLatch countDownLatch;
+    private final Fork fork;
+
+    public Philosopher(String name, Fork fork, int leftFork, int rightFork, CountDownLatch countDownLatch) {
+        this.fork = fork;
+        this.name = name;
         this.leftFork = leftFork;
         this.rightFork = rightFork;
-    }
-
-    private void doAction(String action) throws InterruptedException {
-        System.out.println(Thread.currentThread().getName() + " " + action);
-        Thread.sleep(500);
+        this.countDownLatch = countDownLatch;
+        countEat = 0;
+        random = new Random();
     }
 
     @Override
     public void run() {
-        try {
-            int NUM_EAT_TIMES = 3;
-            for (int i = 0; i < NUM_EAT_TIMES; i++) {
-                doAction("размышляет");
-                synchronized (leftFork) {
-                    synchronized (rightFork) {
-                        doAction("ест");
-                    }
-                }
+        while (countEat < 3) {
+            try {
+                thinking();
+                eating();
+            } catch (InterruptedException e) {
+                e.fillInStackTrace();
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
+        System.out.println(name + " закончил трапезу");
+        countDownLatch.countDown();
+    }
+
+    private void eating() throws InterruptedException {
+        if (fork.tryGetForks(leftFork, rightFork)) {
+            System.out.println(name + " ест, используя вилки: " + leftFork + " и " + rightFork);
+            sleep(random.nextLong(2500, 4500));
+            fork.putForks(leftFork, rightFork);
+            System.out.println(name + " решил разложит пасьянс, не забыв при этом положить вилки " + leftFork + " и " + rightFork);
+            countEat++;
+        }
+    }
+
+    private void thinking() throws InterruptedException {
+        sleep(random.nextLong(100, 2000));
     }
 }
